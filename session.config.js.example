@@ -1,0 +1,10 @@
+module.exports = {
+	cookie : {
+		secure : true
+	},
+	proxy : true,
+	resave : false,
+	rolling : true,
+	saveUninitialized : false,
+	secret : '[secret phrase goes here]',
+};
