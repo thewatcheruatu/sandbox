@@ -5,8 +5,6 @@
  * This is a base class from which basically any other class should be built
  */
 
-const VariableHelpers = require( '../../lib/helpers/variable-helpers.js' );
-
 const GameModel = {
 
 	extend : function( initFunction ) {

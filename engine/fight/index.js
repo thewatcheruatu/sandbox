@@ -66,9 +66,13 @@ Fight.distanceBetweenParticipants = function( p1, p2 ) {
 	);
 };
 
+/*
+ * Synchronous
+ */
 Fight.chooseOpponents = function() {
 	const fight = this;
 	let opponent;
+	let maxThreatSeen;
 
 	if ( ! fight.participants ) {
 		console.log( 'no participants loaded' );
@@ -85,6 +89,7 @@ Fight.chooseOpponents = function() {
 		);
 		c1.attackRange = combatant.kit.getLocation( 'mainHand' ).getRange();
 		c1.runSpeed = combatant.get( 'runSpeed' );
+		maxThreatSeen = 0;
 
 		for ( let j = 0; j < fight.participants.length; j++ ) {
 			if ( j === i ) {
@@ -97,15 +102,24 @@ Fight.chooseOpponents = function() {
 				otherParticipant.propsOut(),
 				otherCombatant.propsOut()
 			);
+			c2.attackRange = otherCombatant.kit.getLocation( 'mainHand' ).getRange();
 			const distance = fight.distanceBetweenParticipants(
 				participant,
 				otherParticipant
 			);
 			const distanceToAttack = distance - c1.attackRange;
-			c2.threat += ( 10 / ( distanceToAttack / c1.runSpeed ) );
-			console.log( 'threat', c2.threat );
+			const distanceToAttacked = distance - c2.attackRange;
+			const turnsToAttacked = Math.ceil( distanceToAttacked / c2.runSpeed );
+			const threatProxMod = ( 6 - Math.min( 5, turnsToAttacked ) ) / 6;
+			c2.threat *= threatProxMod;
+			if ( c2.threat >= maxThreatSeen ) {
+				opponent = c2.combatantId;
+			}
 		}
+
+		fight.participants[i].set( 'opponent', opponent );
 	}
+	
 
 	return true;
 }
