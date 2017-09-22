@@ -11,8 +11,8 @@ const Participant = GameModel.extend( function( props ) {
 	const definitions = {
 		combatantId : { type : 'integer' },
 		threat : { type : 'integer' },
-		x : { type : 'integer' },
-		y : { type : 'integer' },
+		x : { type : 'float', scale : 2, },
+		y : { type : 'float', scale : 2, },
 		opponent : { type : 'integer' },
 	};
 

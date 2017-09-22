@@ -52,6 +52,7 @@ io.on( 'connection', ( socket ) => {
 		} )
 		.then( () => {
 			fight.chooseOpponents();
+			fight.doTurn();
 		} )
 		.catch( console.log );
 } );

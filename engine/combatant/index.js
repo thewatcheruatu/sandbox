@@ -9,12 +9,14 @@ const Combatant = Actor.extend( function( props ) {
 		combatantId : { type : 'integer' },
 		health : { type : 'integer' },
 		strength : { type : 'integer' },
-		runSpeed : { type : 'float' },
+		reflexes : { type : 'integer' }, // turn order
+		runSpeed : { type : 'float' }, // per tick
 	};
 
 	this.setAllPropDefs( definitions );
 	//this.setAllDefined( definitions, props );
 	this.setAll( props );
+	this.set( 'reflexes', 10 );
 	this.set( 'runSpeed', 3.0 );
 
 	this.kit;

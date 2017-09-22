@@ -66,6 +66,42 @@ Fight.distanceBetweenParticipants = function( p1, p2 ) {
 	);
 };
 
+Fight.doTick = function() {
+	const fight = this;
+
+	this.participants.map( ( p ) => {
+		// Might need to pass some options at some point--don't know
+		return doParticipantTick( p );
+	} );
+
+	function doParticipantTick( participant ) {
+		const p = Object.assign(
+			{},
+			participant.propsOut(),
+			participant.combatant.propsOut()
+		);
+		const opponent = fight.getParticipant( p.opponent );
+		const o = Object.assign( {},
+			opponent.propsOut(),
+			opponent.combatant.propsOut()
+		);
+		if ( fight.opponentInWeaponRange( participant, opponent ) ) {
+			console.log( 'in weapon range' );
+		} else {
+			console.log( 'not in weapon range' );
+			fight.moveToWeaponRange( participant, opponent );
+			console.log( participant.propsOut() );
+		}
+	}
+};
+
+Fight.doTurn = function() {
+	console.log( 'doing turn' );
+	this.doTick();
+	this.doTick();
+	this.doTick();
+};
+
 /*
  * Synchronous
  */
@@ -123,5 +159,53 @@ Fight.chooseOpponents = function() {
 
 	return true;
 }
+
+Fight.getParticipant = function( combatantId ) {
+	for ( let i = 0; i < this.participants.length; i++ ) {
+		if ( this.participants[i].get( 'combatantId' ) === combatantId ) {
+			return this.participants[i];
+		}
+	}
+};
+
+Fight.getParticipantWeaponRange = function( participant ) {
+	const kit = participant.combatant.kit;
+	const mainWeapon = kit.getLocation( 'mainHand' );
+
+	return mainWeapon.getRange();
+};
+
+Fight.moveToWeaponRange = function( participant, opponent ) {
+	const fight = this;
+	const weaponRange = fight.getParticipantWeaponRange( participant );
+	const p = Object.assign( 
+		{},
+		participant.propsOut(),
+		participant.combatant.propsOut()
+	);
+	const o = opponent.propsOut();
+	const xDist = o.x - p.x;
+	const yDist = o.y - p.y;
+	const hypotenuse = Math.sqrt( Math.pow( xDist, 2 ) + Math.pow( yDist, 2 ) );
+	const sine = yDist / hypotenuse;
+	const cosine = xDist / hypotenuse;
+	let runDistance = p.runSpeed;
+	if ( runDistance >= hypotenuse ) {
+		runDistance = hypotenuse - weaponRange;
+	}
+	const newX = p.x + ( runDistance * cosine );
+	const newY = p.y + ( runDistance * sine );
+	participant.set( 'x', newX );
+	participant.set( 'y', newY );
+};
+
+Fight.opponentInWeaponRange = function( participant, opponent ) {
+	const fight = this;
+	const weaponRange = fight.getParticipantWeaponRange( participant );
+	const distance = fight.distanceBetweenParticipants( participant, opponent );
+
+	return distance <= weaponRange;
+	
+};
 
 module.exports = Fight;

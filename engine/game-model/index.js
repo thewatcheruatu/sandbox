@@ -52,6 +52,25 @@ const GameModel = {
 				console.log( 'already defined it -- sorry', propName );
 				return false;
 			}
+
+			switch( def.type ) {
+			case 'array' :
+				value = typeof value === 'string' ? JSON.parse( value ) : value;
+				break;
+			case 'integer' :
+				value = parseInt( value, 10 );
+				break;
+			case 'float' :
+				value = parseFloat( value );
+				if ( typeof def.scale !== 'undefined' ) {
+					const multiplier = Math.pow( 10, def.scale );
+					value = Math.round( value * multiplier ) / multiplier;
+				}
+				break;
+			case 'string' :
+				value = String( value );
+				break;
+			}
       props[propName] = value;
     };
 
