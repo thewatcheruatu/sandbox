@@ -14,6 +14,7 @@ const Participant = GameModel.extend( function( props ) {
 		x : { type : 'float', scale : 2, },
 		y : { type : 'float', scale : 2, },
 		opponent : { type : 'integer' },
+		moving : { type : 'boolean' },
 	};
 
 	this.setAllPropDefs( definitions );
@@ -22,6 +23,7 @@ const Participant = GameModel.extend( function( props ) {
 	this.set( 'x', props.x );
 	this.set( 'y', props.y );
 	this.set( 'opponent', props.opponent );
+	this.set( 'moving', props.moving );
 } );
 
 Participant.loadCombatant = function( db ) {

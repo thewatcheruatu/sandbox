@@ -2,8 +2,23 @@
 
 const participants = {
 	'aaaaa' : {
-		'1' : { combatantId : 1, threat : 20, x : 1, y : 1, opponentId : null },
-		'2' : { combatantId : 2, threat : 10, x : 2, y : 10, opponentId : null },
+		'1' : { 
+			combatantId : 1, 
+			threat : 20, 
+			x : 1, 
+			y : 1, 
+			opponentId : null,
+			moving : false,
+		},
+
+		'2' : { 
+			combatantId : 2, 
+			threat : 10, 
+			x : 2, 
+			y : 10, 
+			opponentId : null,
+			moving : false,
+		},
 	},
 };
 

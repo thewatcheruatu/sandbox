@@ -35,14 +35,17 @@ Combatant.attack = function( opponent ) {
 		damageLow = weapon.get( 'damageLow' );
 	}
 
-	let damage;
+	let rawDamage;
 
-	damage = Math.floor(
+	rawDamage = Math.floor(
 		Math.random() * ( damageHigh - damageLow + 1 )
 	) + damageLow;
 
-	console.log( this.get( 'aName' ) + ' does ' + damage + ' damage.' );
-	opponent.takeDamage( damage );
+	opponent.takeDamage( rawDamage );
+
+	return {
+		rawDamage : rawDamage,
+	};
 };
 
 Combatant.equip = function( kitLocation, item ) {

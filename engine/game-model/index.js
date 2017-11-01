@@ -57,6 +57,9 @@ const GameModel = {
 			case 'array' :
 				value = typeof value === 'string' ? JSON.parse( value ) : value;
 				break;
+			case 'boolean' :
+				// probably nothing
+				break;
 			case 'integer' :
 				value = parseInt( value, 10 );
 				break;

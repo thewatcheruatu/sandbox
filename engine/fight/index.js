@@ -5,6 +5,7 @@
  */
 
 const Data = require( './data.js' );
+const GameLog = require( '../game-log' );
 const GameModel = require( '../game-model' );
 const Participant = require( './participant.js' );
 
@@ -59,15 +60,18 @@ Fight.distanceBetweenParticipants = function( p1, p2 ) {
 	const a = p1.get( 'x' ) - p2.get( 'x' );
 	const b = p1.get( 'y' ) - p2.get( 'y' );
 	
-	return Math.round(
-		Math.sqrt(
-			Math.pow( a, 2 ) + Math.pow( b, 2 )
-		)
+	return Math.sqrt(
+		Math.pow( a, 2 ) + Math.pow( b, 2 )
 	);
 };
 
-Fight.doTick = function() {
+Fight.doTick = function( options ) {
 	const fight = this;
+
+	options = options || {};
+	options.log = options.log || {
+		add : () => {},
+	};
 
 	this.participants.map( ( p ) => {
 		// Might need to pass some options at some point--don't know
@@ -85,26 +89,59 @@ Fight.doTick = function() {
 			opponent.propsOut(),
 			opponent.combatant.propsOut()
 		);
-		if ( fight.opponentInWeaponRange( participant, opponent ) ) {
-			console.log( 'in weapon range' );
-		} else {
-			console.log( 'not in weapon range' );
+		if ( ! fight.opponentInWeaponRange( participant, opponent ) ) {
 			fight.moveToWeaponRange( participant, opponent );
-			console.log( participant.propsOut() );
+			if ( participant.get( 'moving' ) ) {
+				// Participant still has ground to cover and cannot attack this tick
+				//console.log( participant.combatant.get( 'aName' ) + ' still moving' );
+				options.log.add( p.aName + ' moves toward ' + o.aName + '.' );
+				return;
+			} else {
+				options.log.add( p.aName + ' is in range to attack ' + o.aName + '.' );
+			}
+		} else {
+			// Just to be sure
+			participant.set( 'moving', false );
 		}
+
+		/*
+		 * Assume participant is within weapon range
+		 */
+		const aResult = fight.attack( participant, opponent );
+		options.log.add( 
+			p.aName + ' attacks ' + o.aName + ' for ' + aResult.rawDamage + ' dmg.'
+		);
 	}
 };
 
 Fight.doTurn = function() {
-	console.log( 'doing turn' );
-	this.doTick();
-	this.doTick();
-	this.doTick();
+
+	const log = Object.create( GameLog ).init();
+	log.add( 'starting turn' );
+
+	console.log( this.participants[0].combatant.propsOut() );
+	this.doTick( { log : log } );
+	this.doTick( { log : log } );
+	this.doTick( { log : log } );
+	this.doTick( { log : log } );
+	this.doTick( { log : log } );
+	console.log( log.toString() );
+	console.log( this.participants[0].combatant.propsOut() );
 };
 
 /*
  * Synchronous
  */
+
+Fight.attack = function( participant, opponent ) {
+	const attacker = participant.combatant;
+	const attacked = opponent.combatant;
+
+	const result = attacker.attack( attacked );
+
+	return result;
+};
+
 Fight.chooseOpponents = function() {
 	const fight = this;
 	let opponent;
@@ -190,8 +227,11 @@ Fight.moveToWeaponRange = function( participant, opponent ) {
 	const sine = yDist / hypotenuse;
 	const cosine = xDist / hypotenuse;
 	let runDistance = p.runSpeed;
-	if ( runDistance >= hypotenuse ) {
+	if ( runDistance >= hypotenuse - weaponRange ) {
 		runDistance = hypotenuse - weaponRange;
+		participant.set( 'moving', false );
+	} else {
+		participant.set( 'moving', true );
 	}
 	const newX = p.x + ( runDistance * cosine );
 	const newY = p.y + ( runDistance * sine );
