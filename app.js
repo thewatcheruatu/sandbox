@@ -34,15 +34,109 @@ app.use( JSend );
  */
 const Fight = require( './engine/fight' );
 
-// No use for this at the moment. Only tossed it in here to test.
-new CronJob( '*/30 * * * * *', ()=> {
-	//console.log( 'running every 30 seconds', new Date() );
+// Sim thing
+const Sim = require( './engine/sim' );
+
+const GameClock = ( function() {
+	function _init( t ) {
+		this.timestamp = t || 0;
+
+		return this;
+	};
+
+	function addTime( minutes ) {
+		this.timestamp += minutes;
+	};
+
+	function convertMinutes( timestamp ) {
+		let t = timestamp;
+		const years = Math.floor( t / 518400 );
+		t %= 518400;
+		const months = Math.floor( t / 43200 );
+		t %= 43200;
+		const days = Math.floor( t / 1440 );
+		t %= 1440;
+		const hours = Math.floor( t / 60 );
+		t %= 60;
+		const minutes = t;
+
+		return {
+			years : years,
+			months : months,
+			days : days,
+			hours : hours,
+			minutes : minutes
+		}
+	}
+
+	function get() {
+		return convertMinutes( this.timestamp );
+	}
+
+	function getDifference( timestamp ) {
+		const diff = Math.abs( this.timestamp - timestamp );
+		return convertMinutes( diff );
+	}
+
+	return {
+		_init : _init,
+		addTime : addTime,
+		get : get,
+		getDifference : getDifference,
+	};
+} )();
+
+const gc = Object.create( GameClock )._init();
+
+new CronJob( '*/10 * * * * *', ()=> {
+	gc.addTime( 20 );
+	//console.log( 'running every 10 seconds', new Date() );
+	const db = null;
+	let sims;
+	let simActions;
+	Promise.all( [
+		Sim.load( 1, db ),
+		Sim.load( 2, db ),
+		] )
+		.then( async ( _sims ) => {
+			sims = _sims;
+
+			return Promise.all( [
+				sims[0].loadActions( db ),
+				sims[1].loadActions( db ),
+			] );
+		} )
+		.then( () => {
+			const simActions = sims[0]._actions;
+			sims[0].doTick( gc );
+			//_sims[1].doTick();
+			//console.log( sims[0].propsOut() );
+			//console.log( _sims[1].propsOut() );
+			if ( sims[0].getAge( gc ).minutes === 0 ) {
+				console.log( sims[0].getAge( gc ) );
+			}
+			//console.log( simActions[0].propsOut() );
+			//console.log( _sims[1].getAge( turn ) );
+			//console.log( gc1.get() );
+			//console.log( gc2.get() );
+			return Promise.all( 
+				sims.map( ( _sim ) => {
+					_sim.set( 'checked', gc.timestamp );
+					_sim.save( db );
+				} )
+			);
+		} )
+		.then( () => {
+		} )
+		.catch( console.log );
 }, null, true );
 
 // Testing out socket.io
 io.on( 'connection', ( socket ) => {
 	const db = require( './lib/database' ).brokerMainDb;
 	console.log( 'a user connected' );
+
+/*
 	let fight;
 
 	Fight.load( 'aaaaa', db )
@@ -55,6 +149,7 @@ io.on( 'connection', ( socket ) => {
 			fight.doTurn();
 		} )
 		.catch( console.log );
+*/
 } );
 
 /*

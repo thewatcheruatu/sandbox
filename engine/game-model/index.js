@@ -7,10 +7,15 @@
 
 const GameModel = {
 
-	extend : function( initFunction ) {
+	extend : function( propDefs, initFunction ) {
+		if ( typeof propDefs === 'function' ) {
+			initFunction = propDefs;
+			propDefs = {};
+		}
   	const model = this.make();
     model.init = function() {
     	Object.getPrototypeOf( model ).init.apply( this, arguments );
+			this.setAllPropDefs( propDefs );
       initFunction.apply( this, arguments );
 			return this;
     }
@@ -62,6 +67,11 @@ const GameModel = {
 				break;
 			case 'integer' :
 				value = parseInt( value, 10 );
+				if ( typeof def.max !== 'undefined' && value > def.max ) {
+					value = def.max;
+				} else if ( typeof def.min !== 'undefined' && value < def.min ) {
+					value = def.min;
+				}
 				break;
 			case 'float' :
 				value = parseFloat( value );
@@ -81,6 +91,10 @@ const GameModel = {
 			for ( let propName in props ) {
 				this.set( propName, props[propName] );
 			}
+		};
+
+		this.setIncrease = function( propName, amount ) {
+			this.set( propName, this.get( propName ) + amount );
 		};
 
 		return this;
