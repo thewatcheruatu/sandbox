@@ -7,15 +7,27 @@
 
 const GameModel = {
 
-	extend : function( propDefs, initFunction ) {
-		if ( typeof propDefs === 'function' ) {
-			initFunction = propDefs;
-			propDefs = {};
+	extend : function( initializers ) {
+		let className;
+		let propDefs;
+		let initFunction;
+
+		if ( typeof initializers === 'function' ) {
+			initFunction = initializers;
+		} else {
+			className = initializers.className;
+			propDefs = initializers.propDefs;
+			initFunction = initializers.init;
 		}
+
   	const model = this.make();
     model.init = function() {
     	Object.getPrototypeOf( model ).init.apply( this, arguments );
 			this.setAllPropDefs( propDefs );
+			if ( className ) {
+				this.set( 'class', className );
+			}
+			//this.setAll( arguments[0] );
       initFunction.apply( this, arguments );
 			return this;
     }
@@ -26,8 +38,13 @@ const GameModel = {
   init : function() {
   	// Property assignments go here
     const props = {};
+		const classStack = [];
+		this.propDefs = {};
     
     this.get = function( propName ) {
+			if ( propName === 'class' ) {
+				return classStack[classStack.length - 1];
+			}
       return props[propName];
     };
 
@@ -46,7 +63,12 @@ const GameModel = {
 		};
     
     this.set = function( propName, value ) {
+			if ( propName === 'class' && classStack.indexOf( propName ) === -1 ) {
+				classStack.push( value );
+				return;
+			}
 			const def = this.propDefs[propName];
+			let isNumber = false;
 
 			if ( typeof def === 'undefined' ) {
 				console.log( 'property does not exist', propName );
@@ -67,14 +89,11 @@ const GameModel = {
 				break;
 			case 'integer' :
 				value = parseInt( value, 10 );
-				if ( typeof def.max !== 'undefined' && value > def.max ) {
-					value = def.max;
-				} else if ( typeof def.min !== 'undefined' && value < def.min ) {
-					value = def.min;
-				}
+				isNumber = true;
 				break;
 			case 'float' :
 				value = parseFloat( value );
+				isNumber = true;
 				if ( typeof def.scale !== 'undefined' ) {
 					const multiplier = Math.pow( 10, def.scale );
 					value = Math.round( value * multiplier ) / multiplier;
@@ -83,6 +102,14 @@ const GameModel = {
 			case 'string' :
 				value = String( value );
 				break;
+			}
+
+			if ( isNumber ) {
+				if ( typeof def.max !== 'undefined' && value > def.max ) {
+					value = def.max;
+				} else if ( typeof def.min !== 'undefined' && value < def.min ) {
+					value = def.min;
+				}
 			}
       props[propName] = value;
     };
@@ -96,6 +123,8 @@ const GameModel = {
 		this.setIncrease = function( propName, amount ) {
 			this.set( propName, this.get( propName ) + amount );
 		};
+
+		this.set( 'class', 'GameModel' );
 
 		return this;
   },

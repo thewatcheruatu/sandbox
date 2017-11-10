@@ -109,19 +109,12 @@ new CronJob( '*/10 * * * * *', ()=> {
 		.then( () => {
 			const simActions = sims[0]._actions;
 			sims[0].doTick( gc );
-			//_sims[1].doTick();
-			//console.log( sims[0].propsOut() );
-			//console.log( _sims[1].propsOut() );
-			if ( sims[0].getAge( gc ).minutes === 0 ) {
+			if ( sims[0].getAge( gc ).minutes === 0 &&
+				sims[0].getAge( gc ).hours === 0 ) {
 				console.log( sims[0].getAge( gc ) );
 			}
-			//console.log( simActions[0].propsOut() );
-			//console.log( _sims[1].getAge( turn ) );
-			//console.log( gc1.get() );
-			//console.log( gc2.get() );
 			return Promise.all( 
 				sims.map( ( _sim ) => {
-					_sim.set( 'checked', gc.timestamp );
 					_sim.save( db );
 				} )
 			);

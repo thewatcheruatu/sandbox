@@ -6,18 +6,21 @@
 const GameModel = require( '../game-model' );
 const Data = require( './sim-action.data.js' );
 
-const SimAction = GameModel.extend( 
-	{
+const SimAction = GameModel.extend( {
+	className : 'SimAction',
+
+	propDefs : {
 		simId : { type : 'integer' },
 		actionId : { type : 'integer' },
 		started : { type : 'integer' }, // timestamp
 	},
-	function( props ) {
+
+	init : function( props ) {
 		this.set( 'simId', props.simId );
 		this.set( 'started', props.started );
 		this.set( 'actionId', props.actionId );
 	} 
-);
+} );
 
 SimAction.load = function( simId, actionId, db ) {
 	return new Promise( ( resolve, reject ) => {
@@ -46,5 +49,6 @@ SimAction.loadAll = function( simId, db ) {
 			} );
 	} );
 };
+
 
 module.exports = SimAction;

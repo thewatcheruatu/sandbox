@@ -8,15 +8,18 @@ const Data = require( './index.data.js' );
 const GameModel = require( '../game-model' );
 const SimAction = require( './sim-action.js' );
 
-const Sim = Actor.extend( 
-	{
+const Sim = Actor.extend( {
+	className : 'Sim',
+
+	propDefs : {
 		simId : { type : 'integer' },
 		born : { type : 'integer' }, // Turn number
 		checked : { type : 'integer' }, // Timestamp of last check
 		hunger : { type : 'integer', max : 1000, min : 0 },
 		exhaustion : { type : 'integer' },
 	},
-	function( props ) {
+
+	init : function( props ) {
 		const self = this;
 		/*
 		 * Motives:
@@ -24,12 +27,7 @@ const Sim = Actor.extend(
 		 * * Exhaustion
 		 */
 
-		this.set( 'simId', props.simId );
-		this.set( 'born', props.born );
-		this.set( 'checked', props.checked );
-		this.set( 'aName', props.aName );
-		this.set( 'hunger', props.hunger );
-		this.set( 'exhaustion', props.exhaustion );
+		this.setAll( props );
 
 		this._actions = [];
 
@@ -45,7 +43,7 @@ const Sim = Actor.extend(
 		};
 
 	} 
-);
+} );
 
 function loadActions( simId, db ) {
 	return new Promise( ( resolve, reject ) => {
@@ -57,25 +55,116 @@ function loadActions( simId, db ) {
 	} );
 }
 
-const Influence = GameModel.extend( 
-	{
-		name_ : { type : 'string' },
-		motive : { type : 'string' },
+const StatDelta = GameModel.extend( {
+	className : 'StatDelta',
+
+	propDefs : {
+		stat : { type : 'string' },
 		delta : { type : 'decimal' }, // per minute
 	},
-	function( props ) {
-		this.set( 'name', props.name );
-		this.set( 'motive', props.motive );
+
+	init : function( props ) {
+		this.set( 'stat', props.stat );
 		this.set( 'delta', props.delta );
 	}
-);
+} );
+
+const StatMover = GameModel.extend( {
+	className : 'StatMover',
+	classType : 'abstract',
+	
+	propDefs : {
+		name : { type : 'string' },
+	},
+
+	init : function( props ) {
+		this.deltas = [];
+	},
+} );
+
+StatMover.addDelta = function( statDelta ) {
+	this.deltas.push( statDelta );
+
+	return this;
+}
+
+StatMover.createDelta = function( props ) {
+	this.addDelta(
+		Object.create( StatDelta ).init( props )
+	);
+
+	return this;
+};
+
+const Influence = StatMover.extend( {
+	className : 'Influence',
+
+	propDefs : {
+	},
+
+	init : function( props ) {
+		this.setAll( props );
+	}
+} );
+
+const Action = StatMover.extend( {
+	className : 'Action',
+
+	propDefs : {
+		actionId : { type : 'integer' },
+	},
+
+	init : function( props ) {
+		this.setAll( props );
+		this.terminateConditions = [];
+	}
+} );
+
+Action.addTerminateCondition = function( condition ) {
+	this.terminateConditions.push( condition );
+}
+
+Action.mustTerminate = function( sim ) {
+	for ( let i = 0; i < this.terminateConditions.length; i++ ) {
+		const _ = this.terminateConditions[i];
+		switch ( _.type ) {
+		case 'statMin' :
+			if ( sim.get( _.stat ) === 0 ) {
+				console.log( 'must terminate' );
+				return true;
+			}
+			break;
+		}
+	}
+	return false;
+}
+
+Action.terminateOnStatMin = function( stat ) {
+	this.addTerminateCondition( {
+		type : 'statMin',
+		stat : stat,
+	} );
+}
+
+const eat = Action
+	.init( {
+		actionId : 2,
+	} )
+	.createDelta( {
+		stat : 'hunger',
+		delta : -33.33,
+	} )
+	.terminateOnStatMin( 'hunger' );
 
 const coreInfluences = [
-	Object.create( Influence ).init( {
-		name : 'digestion',
-		motive : 'hunger',
-		delta : 1.66,
-	} ),
+	Object.create( Influence )
+		.init( {
+			name : 'digestion',
+		} )
+		.createDelta( {
+			stat : 'hunger',
+			delta : 1.66,
+		} ),
 ];
 
 Sim.doTick = function( gameClock ) {
@@ -88,16 +177,25 @@ Sim.doTick = function( gameClock ) {
 	};
 
 	for ( let i = 0; i < coreInfluences.length; i++ ) {
-		const _ = coreInfluences[i];
-		const thisMotive = _.get( 'motive' );
-		const thisDelta = _.get( 'delta' );
-
-		motiveDeltas[thisMotive] += thisDelta;
+		for ( let j = 0; j < coreInfluences[i].deltas.length; j++ ) {
+			const _ = coreInfluences[i].deltas[j];
+			const thisMotive = _.get( 'stat' );
+			const thisDelta = _.get( 'delta' );
+			if ( typeof motiveDeltas[thisMotive] !== 'undefined' ) {
+				motiveDeltas[thisMotive] += thisDelta;
+			}
+		}
 	}
 
 	for ( let motive in motiveDeltas ) {
 		this.set( motive, sim[motive] += ( motiveDeltas[motive] * diff ) );
 	}
+
+	if ( this.get( 'hunger' ) > 500 ) {
+		//console.log( 'sim is hungry' );
+	}
+
+	this.set( 'checked', gameClock.timestamp );
 
 };
 
